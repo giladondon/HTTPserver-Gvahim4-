@@ -5,7 +5,8 @@ import socket
 import os
 
 """
-This server is working in a TCP protocol, a sulution for EX 4.4 - 4.6, chapter 4
+A GET HTTP protocol server, based on excersises from Gvahim book Chapter 4.
+Currently solved up to exercise 4.4 (5)
 """
 
 PORT = 80
@@ -32,8 +33,9 @@ NOTFOUNDCODE = "404"
 
 def parse_request(client_data):
 	"""
+	@param data from client's request as a str
 	Parses client's http request into - method, url, protocol and headers (list of headers)
-	returns a list with http request elements + verification if valid HTTP GET request (boolean)
+	@return list with http request elements + verification if valid HTTP GET request (boolean)
 	[Method, URL, Protocol, Headers(list), is_valid]
 	"""	
 	elements = client_data.split(' ', MAXSPLIT)
@@ -56,8 +58,8 @@ def parse_request(client_data):
 
 def get_file_name(request_elements):
 	"""
-	Gets a list of HTTP request elements - [Method, URL, Protocol, Headers(list), is_valid]
-	Returns requested file name
+	@param list of HTTP request elements - [Method, URL, Protocol, Headers(list), is_valid]
+	@Return requested file name as str
 	"""
 	fslash_index = request_elements[URLCELL].index("/")
 	file_name = request_elements[URLCELL][fslash_index + 1:]
@@ -66,9 +68,10 @@ def get_file_name(request_elements):
 
 def send_file(request_elements, client_socket):
 	"""
-	Gets a list of HTTP request elements - [Method, URL, Protocol, Headers(list), is_valid]
-	Gets client_socket - a socket._socketobject that represent the client side
-	Function sends requested file to client and returns true or false
+	@param list of HTTP request elements - [Method, URL, Protocol, Headers(list), is_valid]
+	@param client_socket - a socket._socketobject that represent the client side
+	Function sends requested file to client
+	@return true or false
 	"""
 	file_path = request_elements[URLCELL]
 	file_path = file_path.replace(FSLASH, os.sep)
@@ -86,8 +89,8 @@ def send_file(request_elements, client_socket):
 
 def headers(file_path):
 	"""
-	Gets file path - full path including file name
-	Generates headers for HTTP protocol response
+	@file path - full path including file name
+	@return headers for HTTP protocol response
 	"""
 	if os.path.isfile(file_path):
 		response_code = OKCODE
