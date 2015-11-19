@@ -6,7 +6,7 @@ import os
 
 """
 A GET HTTP protocol server, based on excersises from Gvahim book Chapter 4.
-Currently solved up to exercise 4.4 (5)
+Currently solved up to exercise 4.4 (5).
 """
 
 PORT = 80
@@ -124,7 +124,7 @@ def main():
 			file_name = get_file_name(client_data)
 			is_sent = send_file(client_data, client_socket)
 			if not is_sent:
-				print client_address[0] + ": Error "
+				print client_address[0] + ": Error occurded with " + file_name
 
 		client_socket.close()
 
