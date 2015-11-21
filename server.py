@@ -30,7 +30,17 @@ OK = "OK"
 OKCODE = "200"
 NOTFOUND = "NotFound"
 NOTFOUNDCODE = "404"
-FORBIDDEN = []
+FORBIDDENFOLDER = "forbiddenFiles"
+FORBIDDENCODE = "403"
+FORBIDDEN = "Forbidden"
+NOTFOUNDCONTENT = "File was not found!"
+FORBIDDENCONTENT = "The file you are trying to reach is forbidden!"
+MOVEDCODE = "302"
+MOVED = "Found"
+MOVEDCONTENT = "File was moved!"
+UNKNOWN = "unknown"
+INTERNAL = "Internal Server Error"
+INTERNALCODE = "505"
 
 
 def parse_request(client_data):
@@ -59,6 +69,19 @@ def parse_request(client_data):
     return elements
 
 
+def find_file(file_path):
+    """
+    @param file_path - str including path to file and file name
+    @return str of first match or False if non was found
+    """
+    name = file_path[file_path.rfind(os.sep)+1:]
+    path = file_path[:file_path.rfind(os.sep)]
+    for root, dirs, files in os.walk(path):
+        if name in files:
+            return os.path.join(root, name)
+    return False
+
+
 def get_file_name(request_elements):
     """
     @param request_elements list of HTTP request elements - [Method, URL, Protocol, Headers(list), is_valid]
@@ -76,7 +99,10 @@ def send_file(request_elements, client_socket):
     Function sends requested file to client
     @return true or false
     """
-    if not get_file_name(request_elements) == "":
+    if not request_elements[VALIDCELL]:
+        full_response = headers(UNKNOWN)[0] + "Internal server error"
+        client_socket.send(full_response)
+    elif not get_file_name(request_elements) == "":
         file_path = request_elements[URLCELL]
         file_path = file_path.replace(FSLASH, os.sep)
         file_path = ROOTDIR + file_path
@@ -86,30 +112,62 @@ def send_file(request_elements, client_socket):
         f = open(file_path, 'rb')
         content = f.read()
         f.close()
-        full_response = headers(file_path) + str(content)
+        if headers(file_path)[1] == FORBIDDENCODE:
+            full_response = headers(file_path)[0] + FORBIDDENCONTENT
+        else:
+            full_response = headers(file_path)[0] + str(content)
         client_socket.send(full_response)
         return True
     else:
-        return False
+        if headers(file_path)[1] == MOVEDCODE:
+            f = open(find_file(file_path), 'rb')
+            content = f.read()
+            f.close()
+            full_response = headers(file_path)[0] + str(content)
+            client_socket.send(full_response)
+            return True
+        elif headers(file_path)[1] == NOTFOUNDCODE:
+            full_response = headers(file_path)[0] + NOTFOUNDCONTENT
+            client_socket.send(full_response)
+    return False
 
 
 def headers(file_path):
     """
-    @file path - full path including file name
+    @file path - full path including file name, if not valid request file_path = UNKNOWN
     @return headers for HTTP protocol response
     """
-    if os.path.isfile(file_path):
-        response_code = OKCODE
-        response_phrase = OK
+    if file_path == UNKNOWN:
+        response_code = INTERNALCODE
+        response_phrase = INTERNAL
+        header = PROTOCOL + SPACE + response_code + SPACE + response_phrase + SEPREQ
+        header += SEPREQ
+    elif os.path.isfile(file_path):
+        if FORBIDDENFOLDER in file_path:
+            response_code = FORBIDDENCODE
+            response_phrase = FORBIDDEN
+            header = PROTOCOL + SPACE + response_code + SPACE + response_phrase + SEPREQ
+            header += SEPREQ
+        else:
+            response_code = OKCODE
+            response_phrase = OK
+            header = PROTOCOL + SPACE + response_code + SPACE + response_phrase + SEPREQ
+            header += "Content-Length: " + str(os.path.getsize(file_path)) + SEPREQ
+            header += SEPREQ
     else:
-        response_code = NOTFOUNDCODE
-        response_phrase = NOTFOUND
+        if not find_file(file_path):
+            response_code = NOTFOUNDCODE
+            response_phrase = NOTFOUND
+            header = PROTOCOL + SPACE + response_code + SPACE + response_phrase + SEPREQ
+            header += SEPREQ
+        else:
+            response_code = MOVEDCODE
+            response_phrase = MOVED
+            header = PROTOCOL + SPACE + response_code + SPACE + response_phrase + SEPREQ
+            header += "Location: " + '/'.join(find_file(file_path).split(os.sep)[len(ROOTDIR.split(os.sep)):]) + SEPREQ
+            header += SEPREQ
 
-    header = PROTOCOL + SPACE + response_code + SPACE + response_phrase + SEPREQ
-    header += "Content-Length: " + str(os.path.getsize(file_path)) + SEPREQ
-    header += SEPREQ
-
-    return header
+    return header, response_code
 
 
 def main():
@@ -135,10 +193,8 @@ def main():
             file_name = get_file_name(client_data)
             is_sent = send_file(client_data, client_socket)
             if not is_sent:
-                print(client_address[0] + ": Error occurred with " + file_name)
-
+                print(client_address[0] + "-" + file_name)
         client_socket.close()
-
         client_socket, client_address = server_socket.accept()
         client_data = client_socket.recv(KB)
 
