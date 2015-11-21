@@ -5,7 +5,7 @@ __author__ = "Gilad Barak"
 __name__ = "main"
 
 """
-A GET HTTP protocol server, based on excersises from Gvahim book Chapter 4.
+A GET HTTP protocol server, based on exercise from Gvahim book Chapter 4.
 Currently solved up to exercise 4.4 (5).
 """
 
@@ -30,6 +30,7 @@ OK = "OK"
 OKCODE = "200"
 NOTFOUND = "NotFound"
 NOTFOUNDCODE = "404"
+FORBIDDEN = []
 
 
 def parse_request(client_data):
@@ -39,26 +40,23 @@ def parse_request(client_data):
     @return list with http request elements + verification if valid HTTP GET request (boolean)
     [Method, URL, Protocol, Headers(list), is_valid]
     """
-
     elements = client_data.split(' ', MAXSPLIT)
-    try:
-        request_headers = elements[PROTOCOLCELL][elements[PROTOCOLCELL].index(HEADB) + 1:]
-        elements.append(request_headers)
-        elements[PROTOCOLCELL] = elements[PROTOCOLCELL][:elements[PROTOCOLCELL].index(HEADB)]
-        elements[HEADERCELL] = elements[HEADERCELL].split(SEPREQ)
-    finally:
-        if not elements[METHODCELL] == GET:
+    request_headers = elements[PROTOCOLCELL][elements[PROTOCOLCELL].index(PROTOCOL) + len(PROTOCOL) + 1:]
+    elements.append(request_headers)
+    elements[PROTOCOLCELL] = elements[PROTOCOLCELL][:elements[PROTOCOLCELL].index(PROTOCOL) + len(PROTOCOL)]
+    elements[HEADERCELL] = elements[HEADERCELL].split(SEPREQ)
+    if not elements[METHODCELL] == GET:
+        elements.append(False)
+    elif not elements[URLCELL][0] == FSLASH:
+        elements.append(False)
+    elif not elements[PROTOCOLCELL] == PROTOCOL:
+        elements.append(False)
+    elif not elements[HEADERCELL][len(elements[HEADERCELL]) - 1] == EMPTY:
+        if not elements[HEADERCELL][len(elements[HEADERCELL]) - 2] == EMPTY:
             elements.append(False)
-        elif not elements[URLCELL][0] == FSLASH:
-            elements.append(False)
-        elif not elements[PROTOCOLCELL] == PROTOCOL:
-            elements.append(False)
-        elif not elements[HEADERCELL][len(elements[HEADERCELL]) - 1] == EMPTY:
-            if not elements[HEADERCELL][len(elements[HEADERCELL]) - 2] == EMPTY:
-                elements.append(False)
-        else:
-            elements.append(True)
-        return elements
+    else:
+        elements.append(True)
+    return elements
 
 
 def get_file_name(request_elements):
@@ -78,9 +76,12 @@ def send_file(request_elements, client_socket):
     Function sends requested file to client
     @return true or false
     """
-    file_path = request_elements[URLCELL]
-    file_path = file_path.replace(FSLASH, os.sep)
-    file_path = ROOTDIR + file_path
+    if not get_file_name(request_elements) == "":
+        file_path = request_elements[URLCELL]
+        file_path = file_path.replace(FSLASH, os.sep)
+        file_path = ROOTDIR + file_path
+    else:
+        file_path = ROOTDIR + os.sep + "index.html"
     if os.path.isfile(file_path):
         f = open(file_path, 'rb')
         content = f.read()
@@ -123,6 +124,10 @@ def main():
     client_socket, client_address = server_socket.accept()
     client_data = client_socket.recv(KB)
     while True:
+        while client_data == "":
+            client_socket.close()
+            client_socket, client_address = server_socket.accept()
+            client_data = client_socket.recv(KB)
         client_data = parse_request(client_data)
         if not client_data[VALIDCELL]:
             client_socket.close()
@@ -130,7 +135,7 @@ def main():
             file_name = get_file_name(client_data)
             is_sent = send_file(client_data, client_socket)
             if not is_sent:
-                print(client_address[0] + ": Error occurded with " + file_name)
+                print(client_address[0] + ": Error occurred with " + file_name)
 
         client_socket.close()
 
