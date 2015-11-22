@@ -24,7 +24,7 @@ URLCELL = 1
 PROTOCOLCELL = 2
 HEADERCELL = 3
 VALIDCELL = 4
-ROOTDIR = "/Users/Giladondon/Cyber/compNet/wwwroot"
+ROOTDIR = "L:\\GiladBarak\\wwwroot\\"
 SPACE = " "
 OK = "OK"
 OKCODE = "200"
@@ -107,7 +107,7 @@ def send_file(request_elements, client_socket):
         file_path = file_path.replace(FSLASH, os.sep)
         file_path = ROOTDIR + file_path
     else:
-        file_path = ROOTDIR + os.sep + "index.html"
+        file_path = find_file(ROOTDIR + os.sep + "index.html")
     if os.path.isfile(file_path):
         f = open(file_path, 'rb')
         content = f.read()
@@ -161,11 +161,14 @@ def headers(file_path):
             header = PROTOCOL + SPACE + response_code + SPACE + response_phrase + SEPREQ
             header += SEPREQ
         else:
-            response_code = MOVEDCODE
-            response_phrase = MOVED
-            header = PROTOCOL + SPACE + response_code + SPACE + response_phrase + SEPREQ
-            header += "Location: " + '/'.join(find_file(file_path).split(os.sep)[len(ROOTDIR.split(os.sep)):]) + SEPREQ
-            header += SEPREQ
+			response_code = MOVEDCODE
+			response_phrase = MOVED
+			header = PROTOCOL + SPACE + response_code + SPACE + response_phrase + SEPREQ
+			header += "Location: " + '/'.join(find_file(file_path).split(os.sep)[len(ROOTDIR.split(os.sep))-1:]) + SEPREQ
+			print find_file(file_path)
+			print find_file(file_path).split(os.sep)[len(ROOTDIR.split(os.sep))-1:]
+			print "Location: " + '/'.join(find_file(file_path).split(os.sep)[len(ROOTDIR.split(os.sep))-1:]) + SEPREQ
+			header += SEPREQ
 
     return header, response_code
 
