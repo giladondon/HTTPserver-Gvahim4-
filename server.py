@@ -1,5 +1,6 @@
 import socket
 import os
+import types
 
 __author__ = "Gilad Barak"
 __name__ = "main"
@@ -24,7 +25,8 @@ URLCELL = 1
 PROTOCOLCELL = 2
 HEADERCELL = 3
 VALIDCELL = 4
-ROOTDIR = "L:\\GiladBarak\\wwwroot\\"
+NUMCELL = 5
+ROOTDIR = "/Users/Giladondon/Cyber/compNet/wwwroot"
 SPACE = " "
 OK = "OK"
 OKCODE = "200"
@@ -41,6 +43,7 @@ MOVEDCONTENT = "File was moved!"
 UNKNOWN = "unknown"
 INTERNAL = "Internal Server Error"
 INTERNALCODE = "505"
+NUMBERTYPE = (types.IntType, types.LongType, types.FloatType, types.ComplexType)
 
 
 def parse_request(client_data):
@@ -55,6 +58,10 @@ def parse_request(client_data):
     elements.append(request_headers)
     elements[PROTOCOLCELL] = elements[PROTOCOLCELL][:elements[PROTOCOLCELL].index(PROTOCOL) + len(PROTOCOL)]
     elements[HEADERCELL] = elements[HEADERCELL].split(SEPREQ)
+    calculate = False
+    if "/calculate-next" in elements[URLCELL] and "?num=" in elements[URLCELL]:
+        calculate = True
+        num = elements[URLCELL].split('=')[1]
     if not elements[METHODCELL] == GET:
         elements.append(False)
     elif not elements[URLCELL][0] == FSLASH:
@@ -66,6 +73,8 @@ def parse_request(client_data):
             elements.append(False)
     else:
         elements.append(True)
+    if calculate:
+        elements.append(num)
     return elements
 
 
@@ -99,9 +108,15 @@ def send_file(request_elements, client_socket):
     Function sends requested file to client
     @return true or false
     """
+    if len(request_elements) == NUMCELL + 1:
+        next_num = int(request_elements[NUMCELL]) + 1
+        full_response = headers(int(request_elements[NUMCELL]))[0] + str(next_num)
+        client_socket.send(full_response)
+        return True
     if not request_elements[VALIDCELL]:
         full_response = headers(UNKNOWN)[0] + "Internal server error"
         client_socket.send(full_response)
+        return False
     elif not get_file_name(request_elements) == "":
         file_path = request_elements[URLCELL]
         file_path = file_path.replace(FSLASH, os.sep)
@@ -134,10 +149,19 @@ def send_file(request_elements, client_socket):
 
 def headers(file_path):
     """
-    @file path - full path including file name, if not valid request file_path = UNKNOWN
+    @file path - full path including file name
+    if not valid request file_path = UNKNOWN
+    if calculate-next request file_path = given num
     @return headers for HTTP protocol response
     """
-    if file_path == UNKNOWN:
+    if isinstance(file_path, NUMBERTYPE):
+        response_code = OKCODE
+        response_phrase = OK
+        header = PROTOCOL + SPACE + response_code + SPACE + response_phrase + SEPREQ
+        header += "Content-Length: " + str(len(str(file_path))) + SEPREQ
+        header += SEPREQ
+        return header, response_code
+    elif file_path == UNKNOWN:
         response_code = INTERNALCODE
         response_phrase = INTERNAL
         header = PROTOCOL + SPACE + response_code + SPACE + response_phrase + SEPREQ
@@ -161,15 +185,11 @@ def headers(file_path):
             header = PROTOCOL + SPACE + response_code + SPACE + response_phrase + SEPREQ
             header += SEPREQ
         else:
-			response_code = MOVEDCODE
-			response_phrase = MOVED
-			header = PROTOCOL + SPACE + response_code + SPACE + response_phrase + SEPREQ
-			header += "Location: " + '/'.join(find_file(file_path).split(os.sep)[len(ROOTDIR.split(os.sep))-1:]) + SEPREQ
-			print find_file(file_path)
-			print find_file(file_path).split(os.sep)[len(ROOTDIR.split(os.sep))-1:]
-			print "Location: " + '/'.join(find_file(file_path).split(os.sep)[len(ROOTDIR.split(os.sep))-1:]) + SEPREQ
-			header += SEPREQ
-
+            response_code = MOVEDCODE
+            response_phrase = MOVED
+            header = PROTOCOL + SPACE + response_code + SPACE + response_phrase + SEPREQ
+            header += "Location: " + '/'.join(find_file(file_path).split(os.sep)[len(ROOTDIR.split(os.sep)):]) + SEPREQ
+            header += SEPREQ
     return header, response_code
 
 
