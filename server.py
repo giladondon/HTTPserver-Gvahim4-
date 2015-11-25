@@ -6,8 +6,7 @@ __author__ = "Gilad Barak"
 __name__ = "main"
 
 """
-A GET HTTP protocol server, based on exercise from Gvahim book Chapter 4.
-Currently solved up to exercise 4.4 (5).
+A GET HTTP protocol server, based on exercises from Gvahim book Chapter 4.
 """
 
 PORT = 80
@@ -26,7 +25,7 @@ PROTOCOLCELL = 2
 HEADERCELL = 3
 VALIDCELL = 4
 NUMCELL = 5
-ROOTDIR = "/Users/Giladondon/Cyber/compNet/wwwroot"
+ROOTDIR = "C:\wwwroot"
 SPACE = " "
 OK = "OK"
 OKCODE = "200"
@@ -44,6 +43,7 @@ UNKNOWN = "unknown"
 INTERNAL = "Internal Server Error"
 INTERNALCODE = "505"
 NUMBERTYPE = (types.IntType, types.LongType, types.FloatType, types.ComplexType)
+CLACNEXTDEFULT = 5
 
 
 def parse_request(client_data):
@@ -59,9 +59,16 @@ def parse_request(client_data):
     elements[PROTOCOLCELL] = elements[PROTOCOLCELL][:elements[PROTOCOLCELL].index(PROTOCOL) + len(PROTOCOL)]
     elements[HEADERCELL] = elements[HEADERCELL].split(SEPREQ)
     calculate = False
-    if "/calculate-next" in elements[URLCELL] and "?num=" in elements[URLCELL]:
+    if "/calculate-next" in elements[URLCELL] or "/calculate-area" in elements[URLCELL]:
         calculate = True
-        num = elements[URLCELL].split('=')[1]
+        if "?" not in elements[URLCELL] or "=" not in elements[URLCELL]:
+            variables_dict = {}
+        else:
+            variables = elements[URLCELL].split('?')[1]
+            variables = variables.split('&')
+            variables_dict = {}
+            for cell in range(0, len(variables)):
+                variables_dict[variables[cell].split('=')[0]] = variables[cell].split('=')[1]
     if not elements[METHODCELL] == GET:
         elements.append(False)
     elif not elements[URLCELL][0] == FSLASH:
@@ -74,7 +81,7 @@ def parse_request(client_data):
     else:
         elements.append(True)
     if calculate:
-        elements.append(num)
+        elements.append(variables_dict)
     return elements
 
 
@@ -105,18 +112,35 @@ def send_file(request_elements, client_socket):
     """
     @param request_elements list of HTTP request elements - [Method, URL, Protocol, Headers(list), is_valid]
     @param client_socket - a socket._socketobject that represent the client side
-    Function sends requested file to client
-    @return true or false
+    Function sends requested file or function result to client
+    @return True or False if sent
     """
-    if len(request_elements) == NUMCELL + 1:
-        next_num = int(request_elements[NUMCELL]) + 1
-        full_response = headers(int(request_elements[NUMCELL]))[0] + str(next_num)
-        client_socket.send(full_response)
-        return True
     if not request_elements[VALIDCELL]:
         full_response = headers(UNKNOWN)[0] + "Internal server error"
         client_socket.send(full_response)
         return False
+    elif len(request_elements) == NUMCELL + 1:
+        if "/calculate-next" in request_elements[URLCELL]:
+            try:
+                next_num = int(request_elements[NUMCELL]["num"]) + 1
+                full_response = headers(next_num)[0] + str(next_num)
+            except:
+                full_response = headers(CLACNEXTDEFULT)[0] + str(CLACNEXTDEFULT)
+            finally:
+                client_socket.send(full_response)
+                return True
+        elif "/calculate-area" in request_elements[URLCELL]:
+            try:
+                width = int(request_elements[NUMCELL]["width"])
+                height = int(request_elements[NUMCELL]["height"])
+                area = int((width * height) / 2)
+                full_response = headers(area)[0] + str(area)
+            except:
+                area = 0
+                full_response = headers(area)[0] + str(area)
+            finally:
+                client_socket.send(full_response)
+                return True
     elif not get_file_name(request_elements) == "":
         file_path = request_elements[URLCELL]
         file_path = file_path.replace(FSLASH, os.sep)
@@ -151,7 +175,7 @@ def headers(file_path):
     """
     @file path - full path including file name
     if not valid request file_path = UNKNOWN
-    if calculate-next request file_path = given num
+    if calculate function request file_path = given num
     @return headers for HTTP protocol response
     """
     if isinstance(file_path, NUMBERTYPE):
