@@ -12,7 +12,7 @@ A GET HTTP protocol server, based on exercises from Gvahim book Chapter 4.
 PORT = 80
 IP = '0.0.0.0'
 HEADB = "\r"
-GET = "GET"
+VALIDMETHODS = ["GET", "POST"]
 PROTOCOL = "HTTP/1.1"
 SEPREQ = "\r\n"
 FSLASH = "/"
@@ -25,7 +25,7 @@ PROTOCOLCELL = 2
 HEADERCELL = 3
 VALIDCELL = 4
 VARCELL = 5
-ROOTDIR = "C:\wwwroot"
+ROOTDIR = "/Users/Giladondon/Cyber/compNet/wwwroot"
 ROOTFILE = "index.html"
 SPACE = " "
 OK = "OK"
@@ -70,7 +70,7 @@ def parse_request(client_data):
             variables_dict = {}
             for cell in range(0, len(variables)):
                 variables_dict[variables[cell].split('=')[0]] = variables[cell].split('=')[1]
-    if not elements[METHODCELL] == GET:
+    if elements[METHODCELL] not in VALIDMETHODS:
         elements.append(False)
     elif not elements[URLCELL][0] == FSLASH:
         elements.append(False)
@@ -104,7 +104,7 @@ def get_file_name(request_elements):
     @param request_elements list of HTTP request elements - [Method, URL, Protocol, Headers(list), is_valid]
     @return requested file name as str
     """
-    fslash_index = request_elements[URLCELL].index("/")
+    fslash_index = request_elements[URLCELL].rfind("/")
     file_name = request_elements[URLCELL][fslash_index + 1:]
     return file_name
 
@@ -265,7 +265,6 @@ def headers(file_path):
             response_code = OKCODE
             header = PROTOCOL + SPACE + response_code + SPACE + OK + SEPREQ
             header += "Content-Length: " + str(os.path.getsize(file_path)) + SEPREQ
-            header += "will you: " + "suck my dick" + SEPREQ
             header += SEPREQ
     else:
         if not find_file(file_path):
@@ -304,7 +303,7 @@ def main():
             file_name = get_file_name(client_data)
             is_sent = send_file(client_data, client_socket)
             if not is_sent:
-                print(client_address[0] + "- " + file_name)
+                print(client_address[0] + "*** " + file_name)
         client_socket.close()
         client_socket, client_address = server_socket.accept()
         client_data = client_socket.recv(KB)
