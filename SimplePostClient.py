@@ -34,8 +34,8 @@ def generate_post_request(content, file_path):
     """
     file_name = get_file_name(file_path)
     request = "POST " + POSTADDRESS + " HTTP/1.1" + SEPREQ
-    request += "file_name: " + file_name + SEPREQ
-    request += "content length: " + str(os.path.getsize(file_path)) + SEPREQ
+    request += "file-name: " + file_name + SEPREQ
+    request += "content-length: " + str(os.path.getsize(file_path)) + SEPREQ
     request += SEPREQ
     request += content
     return request

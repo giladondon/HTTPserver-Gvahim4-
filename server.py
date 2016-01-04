@@ -99,26 +99,36 @@ def parse_post(elements):
     elements[PROTOCOLCELL] = elements[PROTOCOLCELL][:elements[PROTOCOLCELL].index(PROTOCOL) + len(PROTOCOL)]
     elements[HEADERCELL] = elements[HEADERCELL].split(SEPREQ)
     elements[HEADERCELL][0] = elements[HEADERCELL][0][1:]
-    elements.append(True)
     if elements[METHODCELL] not in VALIDMETHODS:
         elements.append(False)
     elif not elements[URLCELL][0] == FSLASH:
         elements.append(False)
     elif not elements[PROTOCOLCELL] == PROTOCOL:
         elements.append(False)
-    elif not elements[HEADERCELL][len(elements[HEADERCELL]) - 1] == EMPTY:
-        if not elements[HEADERCELL][len(elements[HEADERCELL]) - 2] == EMPTY:
-            elements.append(False)
     elif not elements[URLCELL] == POSTADDRESS:
         elements.append(False)
     else:
         elements.append(True)
 
-    elements.append(elements[HEADERCELL][-1])
-    elements[HEADERCELL].pop()
-    
+    elements = generate_content(elements)
+
+    print(elements)
+
     return elements
 
+
+def generate_content(elements):
+    start = elements[HEADERCELL].index('')+1
+    content = ""
+    for i in range(start, len(elements[HEADERCELL])):
+        if content == "":
+            content += elements[HEADERCELL][i]
+        else:
+            content += SEPREQ + elements[HEADERCELL][i]
+    for i in range(start, len(elements[HEADERCELL])):
+        elements[HEADERCELL].pop(start)
+    elements.append(content)
+    return elements
 
 def parse_request(client_data):
     """
@@ -336,21 +346,19 @@ def save_from_post(headers_list, content, client_socket):
     :param content: the content of the POST request
     :return: true if writing to file succeeded and false if didn't
     """
-    try:
-        for i in range(len(headers_list)):
-            if "file_name: " in headers_list[i]:
-                index_name = i
-            if "content length: " in headers_list[i]:
-                index_content = i
-        file_name = headers_list[index_name][len("file_name: "):]
-        content_length = int(headers_list[index_content][len("content_length: "):])
-        file = open(UPLOADPOSTDIR + os.sep + file_name, 'wb')
-        file.write(content)
-        more = client_socket.recv(content_length)
-        file.write(more)
-        return True
-    except:
-        return False
+    for i in range(len(headers_list)):
+        if "file-name: " in headers_list[i]:
+            index_name = i
+        if "content-length: " in headers_list[i]:
+            index_content = i
+    file_name = headers_list[index_name][len("file-name: "):]
+    content_length = int(headers_list[index_content][len("content-length: "):])
+    file = open(UPLOADPOSTDIR + os.sep + file_name, 'wb')
+    file.write(content)
+    more = client_socket.recv(content_length)
+    file.write(more)
+
+    return True
 
 
 def main():
