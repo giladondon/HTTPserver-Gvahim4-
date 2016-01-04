@@ -45,16 +45,17 @@ INTERNAL = "Internal Server Error"
 INTERNALCODE = "505"
 NUMBERTYPE = (types.IntType, types.LongType, types.FloatType, types.ComplexType)
 CALCDEFULT = 5
+POSTADDRESS = "/upload"
+CONTENTCELL = 5
+UPLOADPOSTDIR = "/Users/Giladondon/Cyber/compNet/wwwroot/upload"
 
 
-def parse_request(client_data):
+def parse_get(elements):
     """
-    @param client_data from client's request as a str
-    Parses client's http request into - method, url, protocol and headers (list of headers)
-    @return list with http request elements + verification if valid HTTP GET request (boolean)
+    :param elements: a GET request separated by whitespaces into a list.
+    :return: list with http request elements + verification if valid HTTP GET request (boolean)
     [Method, URL, Protocol, Headers(list), is_valid]
     """
-    elements = client_data.split(' ', MAXSPLIT)
     request_headers = elements[PROTOCOLCELL][elements[PROTOCOLCELL].index(PROTOCOL) + len(PROTOCOL) + 1:]
     elements.append(request_headers)
     elements[PROTOCOLCELL] = elements[PROTOCOLCELL][:elements[PROTOCOLCELL].index(PROTOCOL) + len(PROTOCOL)]
@@ -83,6 +84,55 @@ def parse_request(client_data):
         elements.append(True)
     if calculate:
         elements.append(variables_dict)
+
+    return elements
+
+
+def parse_post(elements):
+    """
+    :param elements: a POST request separated by whitespaces into a list.
+    :return: list with http request elements + verification if valid HTTP GET request (boolean)
+    [Method, Address, Protocol, Headers, is_valid, Content]
+    """
+    request_headers = elements[PROTOCOLCELL][elements[PROTOCOLCELL].index(PROTOCOL) + len(PROTOCOL) + 1:]
+    elements.append(request_headers)
+    elements[PROTOCOLCELL] = elements[PROTOCOLCELL][:elements[PROTOCOLCELL].index(PROTOCOL) + len(PROTOCOL)]
+    elements[HEADERCELL] = elements[HEADERCELL].split(SEPREQ)
+    elements[HEADERCELL][0] = elements[HEADERCELL][0][1:]
+    elements.append(True)
+    if elements[METHODCELL] not in VALIDMETHODS:
+        elements.append(False)
+    elif not elements[URLCELL][0] == FSLASH:
+        elements.append(False)
+    elif not elements[PROTOCOLCELL] == PROTOCOL:
+        elements.append(False)
+    elif not elements[HEADERCELL][len(elements[HEADERCELL]) - 1] == EMPTY:
+        if not elements[HEADERCELL][len(elements[HEADERCELL]) - 2] == EMPTY:
+            elements.append(False)
+    elif not elements[URLCELL] == POSTADDRESS:
+        elements.append(False)
+    else:
+        elements.append(True)
+
+    elements.append(elements[HEADERCELL][-1])
+    elements[HEADERCELL].pop()
+    
+    return elements
+
+
+def parse_request(client_data):
+    """
+    @param client_data from client's request as a str
+    Parses client's http request into - method, url, protocol and headers (list of headers)
+    @return list with http request elements + verification if valid HTTP GET request (boolean)
+    [Method, URL, Protocol, Headers(list), is_valid]
+    [Method, Address, Protocol, Headers, Content, is_valid, variables(optional)]
+    """
+    elements = client_data.split(' ', MAXSPLIT)
+    if elements[METHODCELL] == "GET":
+        elements = parse_get(elements)
+    elif elements[METHODCELL] == "POST":
+        elements = parse_post(elements)
     return elements
 
 
@@ -280,10 +330,33 @@ def headers(file_path):
     return header, response_code
 
 
+def save_from_post(headers_list, content, client_socket):
+    """
+    :param headers_list: a list of headers from POST request
+    :param content: the content of the POST request
+    :return: true if writing to file succeeded and false if didn't
+    """
+    try:
+        for i in range(len(headers_list)):
+            if "file_name: " in headers_list[i]:
+                index_name = i
+            if "content length: " in headers_list[i]:
+                index_content = i
+        file_name = headers_list[index_name][len("file_name: "):]
+        content_length = int(headers_list[index_content][len("content_length: "):])
+        file = open(UPLOADPOSTDIR + os.sep + file_name, 'wb')
+        file.write(content)
+        more = client_socket.recv(content_length)
+        file.write(more)
+        return True
+    except:
+        return False
+
+
 def main():
     """
     Connects to client and sends html.index file
-    Solution for Ex 4.4, Chapter 4
+    Solution for Ex 4.10, Chapter 4
     """
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind((IP, PORT))
@@ -300,10 +373,15 @@ def main():
         if not client_data[VALIDCELL]:
             client_socket.close()
         else:
-            file_name = get_file_name(client_data)
-            is_sent = send_file(client_data, client_socket)
-            if not is_sent:
-                print(client_address[0] + "*** " + file_name)
+                if client_data[METHODCELL] == "GET":
+                    file_name = get_file_name(client_data)
+                    is_sent = send_file(client_data, client_socket)
+                    if not is_sent:
+                        print(client_address[0] + "*** " + file_name)
+                elif client_data[METHODCELL] == "POST":
+                    acknoledge = save_from_post(client_data[HEADERCELL], client_data[CONTENTCELL], client_socket)
+                    if not acknoledge:
+                        print("***POST")
         client_socket.close()
         client_socket, client_address = server_socket.accept()
         client_data = client_socket.recv(KB)
