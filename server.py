@@ -61,16 +61,21 @@ def parse_get(elements):
     elements[PROTOCOLCELL] = elements[PROTOCOLCELL][:elements[PROTOCOLCELL].index(PROTOCOL) + len(PROTOCOL)]
     elements[HEADERCELL] = elements[HEADERCELL].split(SEPREQ)
     calculate = False
-    if "/calculate-next" in elements[URLCELL] or "/calculate-area" in elements[URLCELL]:
+    if "/calculate-next" in elements[URLCELL] or "/calculate-area" in elements[URLCELL] or "/image" in elements[URLCELL]:
         calculate = True
         if "?" not in elements[URLCELL] or "=" not in elements[URLCELL]:
+            print("a")
             variables_dict = {}
         else:
+            print("b")
             variables = elements[URLCELL].split('?')[1]
+            print(variables)
             variables = variables.split('&')
+            print(variables)
             variables_dict = {}
             for cell in range(0, len(variables)):
                 variables_dict[variables[cell].split('=')[0]] = variables[cell].split('=')[1]
+            print(variables_dict)
     if elements[METHODCELL] not in VALIDMETHODS:
         elements.append(False)
     elif not elements[URLCELL][0] == FSLASH:
@@ -187,8 +192,12 @@ def send_file(request_elements, client_socket):
             return calculate_next(request_elements[VARCELL], client_socket)
         elif "/calculate-area" in request_elements[URLCELL]:
             return calculate_area(request_elements[VARCELL], client_socket)
-
-    file_path = generate_file_path(request_elements)
+        elif "/image" in request_elements[URLCELL]:
+            print(request_elements[VARCELL])
+            file_path = UPLOADPOSTDIR + os.sep + request_elements[VARCELL]["image-name"]
+            print(file_path)
+    else:
+        file_path = generate_file_path(request_elements)
 
     if os.path.isfile(file_path):
         return file_in_manage(client_socket, file_path)
