@@ -5,11 +5,16 @@ import socket
 __author__ = 'Gilad Barak'
 __name__ = "main"
 
+"""
+This client is used as a demo for a POST client for server.py - based on exercises 4.10-4.11 from Gvahim book.
+"""
+
 SEPREQ = "\r\n"
 NOTFOUND = "File was not found!"
 IP = "127.0.0.1"
 PORT = 80
 POSTADDRESS = "/upload"
+KB = 1024
 
 
 def img_file_content(file_path):
@@ -52,6 +57,10 @@ def get_file_name(file_path):
 
 
 def main():
+    """
+    manages the sending and receiving of the POST client using parse args.
+    Used as a demo client for server.py based on 4.10-4.11 Gvahim book
+    """
     parser = argparse.ArgumentParser(description="Sends a POST request to server with given content.")
     parser.add_argument("file", type=str, help="Enter path to img file including img name")
     args = parser.parse_args()
@@ -61,6 +70,9 @@ def main():
         client_socket.connect((IP, PORT))
         request = generate_post_request(content, args.file)
         client_socket.send(request)
+
+        data = client_socket.recv(KB)
+        print(data)
 
         client_socket.close()
     else:
