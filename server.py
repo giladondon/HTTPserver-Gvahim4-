@@ -61,7 +61,8 @@ def parse_get(elements):
     elements[PROTOCOLCELL] = elements[PROTOCOLCELL][:elements[PROTOCOLCELL].index(PROTOCOL) + len(PROTOCOL)]
     elements[HEADERCELL] = elements[HEADERCELL].split(SEPREQ)
     calculate = False
-    if "/calculate-next" in elements[URLCELL] or "/calculate-area" in elements[URLCELL] or "/image?" in elements[URLCELL]:
+    if "/calculate-next" in elements[URLCELL] or "/calculate-area" in elements[URLCELL] \
+            or "/image?" in elements[URLCELL]:
         calculate = True
         if "?" not in elements[URLCELL] or "=" not in elements[URLCELL]:
             variables_dict = {}
@@ -227,7 +228,7 @@ def file_in_manage(client_socket, file_path):
     """
     @param client_socket - a socket._socketobject that represent the client side.
     @param file_path - string of path to file including file name
-    @returns True or False if data is sent to client properly
+    @returns True if data is sent to client properly
     """
     f = open(file_path, 'rb')
     content = f.read()
@@ -240,8 +241,6 @@ def file_in_manage(client_socket, file_path):
         full_response = headers(file_path)[0] + str(content)
         client_socket.send(full_response)
         return True
-
-    return False
 
 
 def generate_file_path(request_elements):
