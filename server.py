@@ -25,7 +25,7 @@ PROTOCOLCELL = 2
 HEADERCELL = 3
 VALIDCELL = 4
 VARCELL = 5
-ROOTDIR = "/Users/Giladondon/Cyber/compNet/wwwroot"
+ROOTDIR = "C:\wwwroot"
 ROOTFILE = "index.html"
 SPACE = " "
 OK = "OK"
@@ -47,7 +47,7 @@ NUMBERTYPE = (types.IntType, types.LongType, types.FloatType, types.ComplexType)
 CALCDEFULT = 5
 POSTADDRESS = "/upload"
 CONTENTCELL = 5
-UPLOADPOSTDIR = "/Users/Giladondon/Cyber/compNet/wwwroot/upload"
+UPLOADPOSTDIR = "C:\wwwroot\upload"
 
 
 def parse_get(elements):
@@ -350,7 +350,7 @@ def save_from_post(headers_list, content, client_socket):
     """
     :param headers_list: a list of headers from POST request
     :param content: the content of the POST request
-    :return: true if writing to file succeeded and false if didn't
+    :return: true if writing to file succeeded
     """
     for i in range(len(headers_list)):
         if "file-name: " in headers_list[i]:
@@ -359,15 +359,18 @@ def save_from_post(headers_list, content, client_socket):
             index_content = i
     file_name = headers_list[index_name][len("file-name: "):]
     content_length = int(headers_list[index_content][len("content-length: "):])
-    file = open(UPLOADPOSTDIR + os.sep + file_name, 'wb')
-    file.write(content)
-    more = client_socket.recv(content_length)
-    file.write(more)
-
+    f = open(UPLOADPOSTDIR + os.sep + file_name, 'wb')
+    not_received = content_length - len(content)
+    while (not_received - 4*KB) > 0:
+        not_received -= 4*KB
+        content += client_socket.recv(4*KB)
+    content += client_socket.recv(not_received)
+    print("Total received: " + str(len(content)) + "/" + str(content_length))
+    f.write(content)
     return True
 
 
-def generate_respos_post(is_ok):
+def generate_response_post(is_ok):
     request = ""
     if is_ok:
         request += PROTOCOL + SPACE + OKCODE + SPACE + OK + SEPREQ
@@ -405,7 +408,7 @@ def main():
                         print(client_address[0] + "*** " + file_name)
                 elif client_data[METHODCELL] == "POST":
                     acknoledge = save_from_post(client_data[HEADERCELL], client_data[CONTENTCELL], client_socket)
-                    response = generate_respos_post(acknoledge)
+                    response = generate_response_post(acknoledge)
                     client_socket.send(response)
                     if not acknoledge:
                         print("***POST")
