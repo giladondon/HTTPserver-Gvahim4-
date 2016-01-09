@@ -363,8 +363,8 @@ def save_from_post(headers_list, content, client_socket):
     while (not_received - 4*KB) > 0:
         not_received -= 4*KB
         content += client_socket.recv(4*KB)
-    content += client_socket.recv(not_received)
-    print("Total received: " + str(len(content)) + "/" + str(content_length))
+    if(not_received > 0):
+        content += client_socket.recv(not_received)
     f.write(content)
     return True
 
@@ -406,10 +406,10 @@ def main():
                     if not is_sent:
                         print(client_address[0] + "*** " + file_name)
                 elif client_data[METHODCELL] == "POST":
-                    acknoledge = save_from_post(client_data[HEADERCELL], client_data[CONTENTCELL], client_socket)
-                    response = generate_response_post(acknoledge)
+                    acknowledge = save_from_post(client_data[HEADERCELL], client_data[CONTENTCELL], client_socket)
+                    response = generate_response_post(acknowledge)
                     client_socket.send(response)
-                    if not acknoledge:
+                    if not acknowledge:
                         print("***POST")
         client_socket.close()
         client_socket, client_address = server_socket.accept()

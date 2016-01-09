@@ -1,7 +1,6 @@
 import argparse
 import os
 import socket
-import codecs
 
 __author__ = 'Gilad Barak'
 
@@ -40,9 +39,9 @@ def generate_post_request(content, file_path):
     file_name = get_file_name(file_path)
     request = "POST " + POSTADDRESS + " HTTP/1.1" + SEPREQ
     request += "file-name: " + file_name + SEPREQ
-    request += "content-length: " + str(len(content.encode("UTF_8"))) + SEPREQ
+    request += "content-length: " + str(len(content)) + SEPREQ
     request += SEPREQ
-    request += content.encode("UTF_8")
+    request += content
     return request
 
 
@@ -85,12 +84,9 @@ def manage_post(content, path):
         request = generate_post_request(content, path)
         client_socket.send(request)
 
-        data = client_socket.recv(KB)
-        print(data)
+        client_socket.recv(KB)
 
         client_socket.close()
-    else:
-        print(NOTFOUND)
 
 
 if __name__ == 'main':
