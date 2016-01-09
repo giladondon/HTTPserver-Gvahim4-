@@ -25,7 +25,7 @@ PROTOCOLCELL = 2
 HEADERCELL = 3
 VALIDCELL = 4
 VARCELL = 5
-ROOTDIR = "/Users/Giladondon/Cyber/compNet/wwwroot"
+ROOTDIR = "C:\Cyber\wwwroot"
 ROOTFILE = "index.html"
 SPACE = " "
 OK = "OK"
@@ -47,7 +47,7 @@ NUMBERTYPE = (types.IntType, types.LongType, types.FloatType, types.ComplexType)
 CALCDEFULT = 5
 POSTADDRESS = "/upload"
 CONTENTCELL = 5
-UPLOADPOSTDIR = "/Users/Giladondon/Cyber/compNet/wwwroot/upload"
+UPLOADPOSTDIR = "C:\Cyber\wwwroot\upload"
 
 
 def parse_get(elements):

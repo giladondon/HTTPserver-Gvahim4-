@@ -1,9 +1,9 @@
 import argparse
 import os
 import socket
+import codecs
 
 __author__ = 'Gilad Barak'
-__name__ = "main"
 
 """
 This client is used as a demo for a POST client for server.py - based on exercises 4.10-4.11 from Gvahim book.
@@ -40,9 +40,9 @@ def generate_post_request(content, file_path):
     file_name = get_file_name(file_path)
     request = "POST " + POSTADDRESS + " HTTP/1.1" + SEPREQ
     request += "file-name: " + file_name + SEPREQ
-    request += "content-length: " + str(len(content)) + SEPREQ
+    request += "content-length: " + str(len(content.encode("UTF_8"))) + SEPREQ
     request += SEPREQ
-    request += content
+    request += content.encode("UTF_8")
     return request
 
 
@@ -69,6 +69,20 @@ def main():
         client_socket = socket.socket()
         client_socket.connect((IP, PORT))
         request = generate_post_request(content, args.file)
+        client_socket.send(request)
+
+        data = client_socket.recv(KB)
+        print(data)
+
+        client_socket.close()
+    else:
+        print(NOTFOUND)
+
+def manage_post(content, path):
+    if content is not False:
+        client_socket = socket.socket()
+        client_socket.connect((IP, PORT))
+        request = generate_post_request(content, path)
         client_socket.send(request)
 
         data = client_socket.recv(KB)
